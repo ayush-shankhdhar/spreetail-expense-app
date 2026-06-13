@@ -17,4 +17,95 @@ model User {
   name      String
   email     String   @unique
   createdAt DateTime @default(now())
+
+  memberships  GroupMember[]
+  paidExpenses Expense[]     @relation("ExpensePayer")
+
+  settlementsSent     Settlement[]         @relation("SettlementSender")
+  settlementsReceived Settlement[]         @relation("SettlementReceiver")
+  expenseParticipants ExpenseParticipant[]
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  members  GroupMember[]
+  expenses Expense[]
+}
+
+model GroupMember {
+  id String @id @default(cuid())
+
+  userId  String
+  groupId String
+
+  joinDate  DateTime
+  leaveDate DateTime?
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  currency    String
+  expenseDate DateTime
+
+  paidById String
+  paidBy   User   @relation("ExpensePayer", fields: [paidById], references: [id])
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  participants ExpenseParticipant[]
+}
+
+model ExpenseParticipant {
+  id String @id @default(cuid())
+
+  expenseId String
+  userId    String
+
+  shareAmount Float?
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+}
+
+model Settlement {
+  id String @id @default(cuid())
+
+  payerId    String
+  receiverId String
+
+  amount Float
+  date   DateTime @default(now())
+
+  payer    User @relation("SettlementSender", fields: [payerId], references: [id])
+  receiver User @relation("SettlementReceiver", fields: [receiverId], references: [id])
+}
+
+model ImportAnomaly {
+  id String @id @default(cuid())
+
+  rowNumber Int
+
+  anomalyType String
+
+  originalValue String?
+  fixedValue    String?
+
+  actionTaken String
+
+  createdAt DateTime @default(now())
 }
