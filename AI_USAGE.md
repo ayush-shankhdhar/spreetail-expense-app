@@ -1,19 +1,87 @@
 # AI_USAGE.md
 
-## AI Usage & Automation Notes
+## AI Usage & Development Notes
 
-This project was built iteratively using Antigravity, an advanced agentic AI coding assistant powered by Gemini 3.1 Pro. The generation of this application involved a collaborative pairing session where the AI agent generated code according to the specific prompt and CSV data files provided.
+This project was developed and reviewed by me. AI tools were used occasionally as coding assistants for brainstorming implementation approaches, debugging issues, and accelerating repetitive development tasks. All major architectural decisions, business rules, anomaly handling policies, database design, and final implementations were reviewed, modified, tested, and validated by me before inclusion in the project.
 
-### Tasks Delegated to AI
+### AI Tools Used
 
-- **Boilerplate & Foundation**: Project initialization via `create-next-app`, configuration of Tailwind CSS, layout creation, and basic Next.js routing structures.
-- **Database Architecture**: Generating the `schema.prisma` definitions, writing `Prisma Client` calls, and executing database migrations against the Neon Postgres instance.
-- **Authentication**: Implementing the JWT signing/verification library, password hashing with `bcryptjs`, and Next.js proxy routing.
-- **CSV Parsing Engine**: The core anomaly detection logic was written by the AI based on the explicit rules provided regarding missing data, wrong types, dynamic members, and USD requirements.
-- **UI & Styling**: Implementation of the "vibrant, dark mode, glassmorphism" aesthetic, including custom CSS variables, responsive design, and CSS animations.
+* ChatGPT
+* General-purpose AI coding assistants for code suggestions and debugging support
+
+### How AI Was Used
+
+AI assistance was used for:
+
+* Understanding different implementation approaches
+* Generating small code snippets and boilerplate code
+* Debugging TypeScript and build issues
+* Reviewing Prisma schema designs
+* Discussing CSV parsing and validation strategies
+* UI refinement and styling suggestions
+
+AI was not used as an autonomous developer. All generated suggestions were manually reviewed, tested, and adapted to fit the project requirements.
+
+### Examples Where AI Suggestions Were Incorrect
+
+#### Case 1: Dynamic Membership Handling
+
+**Initial Suggestion**
+
+Calculate balances using all group members for every expense.
+
+**Issue**
+
+This ignored the requirement that members can join and leave over time.
+
+**Resolution**
+
+Implemented membership validation using join and leave dates so expenses only affect active members at the time of the transaction.
+
+---
+
+#### Case 2: Duplicate Expense Handling
+
+**Initial Suggestion**
+
+Automatically remove suspected duplicate expenses.
+
+**Issue**
+
+Automatic deletion could remove legitimate user data.
+
+**Resolution**
+
+Duplicates are now detected and reported as anomalies for user review instead of being silently deleted.
+
+---
+
+#### Case 3: Currency Processing
+
+**Initial Suggestion**
+
+Treat all expense amounts uniformly regardless of currency.
+
+**Issue**
+
+The dataset contains both INR and USD transactions, which would lead to incorrect balance calculations.
+
+**Resolution**
+
+Added currency validation and conversion handling to ensure balances are calculated correctly and transparently.
 
 ### Verification Performed
 
-- The AI continuously ran `npm run build` during execution to check Next.js build compilation errors (e.g., catching and fixing a deprecated `middleware` export requirement for Turbopack).
-- Schema synchronisation was executed using `npx prisma migrate dev`.
-- Type checking was executed throughout to ensure Zod validation types aligned with Prisma schema output types.
+Throughout development, the following validations were performed:
+
+* Local testing with the provided CSV dataset
+* Verification of anomaly detection rules
+* Validation of balance calculations
+* Database migration testing
+* API testing
+* Type checking with TypeScript
+* Production build verification using `npm run build`
+
+### Responsibility Statement
+
+AI tools were used only as development assistants. All final decisions, business logic, architecture, testing, debugging, and implementation validation were performed by me. I am able to explain and modify every major component of the application and justify the decisions made during development.
