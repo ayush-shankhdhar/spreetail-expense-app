@@ -1,0 +1,348 @@
+{
+  "id": "cmqd9skc300bexjw5k2ektcbx",
+  "filename": "expenses_export.csv",
+  "date": "2026-06-14T04:14:20.403Z",
+  "stats": {
+    "totalRows": 42,
+    "importedRows": 36,
+    "skippedRows": 4
+  },
+  "anomalies": [
+    {
+      "rowNumber": 6,
+      "type": "DUPLICATE_EXPENSE",
+      "original": "Same as row 5: \"Dinner at Marina Bites\" by Dev for 3200",
+      "fixed": null,
+      "action": "Duplicate of row 5 — skipping this row"
+    },
+    {
+      "rowNumber": 7,
+      "type": "AMOUNT_FORMAT_FIXED",
+      "original": "1,200",
+      "fixed": "1200",
+      "action": "Removed commas from \"1,200\""
+    },
+    {
+      "rowNumber": 9,
+      "type": "NAME_VARIATION",
+      "original": "priya",
+      "fixed": "Priya",
+      "action": "Normalized name \"priya\" → \"Priya\""
+    },
+    {
+      "rowNumber": 10,
+      "type": "EXCESS_DECIMAL_PRECISION",
+      "original": "899.995",
+      "fixed": "900",
+      "action": "Rounded 899.995 → 900"
+    },
+    {
+      "rowNumber": 11,
+      "type": "NAME_VARIATION",
+      "original": "Priya S",
+      "fixed": "Priya",
+      "action": "Normalized name \"Priya S\" → \"Priya\" (removed suffix)"
+    },
+    {
+      "rowNumber": 13,
+      "type": "MISSING_PAYER",
+      "original": null,
+      "fixed": null,
+      "action": "Skipped — cannot determine who paid"
+    },
+    {
+      "rowNumber": 14,
+      "type": "SETTLEMENT_AS_EXPENSE",
+      "original": "Rohan paid Aisha back",
+      "fixed": null,
+      "action": "Detected as settlement — imported as payment record, not expense"
+    },
+    {
+      "rowNumber": 15,
+      "type": "INVALID_PERCENTAGES",
+      "original": "Percentages sum to 110%",
+      "fixed": "Normalized to 100%",
+      "action": "Percentages summed to 110% — normalized proportionally to 100%"
+    },
+    {
+      "rowNumber": 16,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "01/03/2026",
+      "fixed": "2026-02-28",
+      "action": "Interpreted 01/03/2026 as DD/MM/YYYY → 2026-02-28"
+    },
+    {
+      "rowNumber": 16,
+      "type": "AMBIGUOUS_DATE",
+      "original": "01/03/2026",
+      "fixed": "2026-02-28",
+      "action": "Interpreted as DD/MM/YYYY → 2026-02-28"
+    },
+    {
+      "rowNumber": 18,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "05/03/2026",
+      "fixed": "2026-03-04",
+      "action": "Interpreted 05/03/2026 as DD/MM/YYYY → 2026-03-04"
+    },
+    {
+      "rowNumber": 18,
+      "type": "AMBIGUOUS_DATE",
+      "original": "05/03/2026",
+      "fixed": "2026-03-04",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-04"
+    },
+    {
+      "rowNumber": 19,
+      "type": "AMBIGUOUS_DATE",
+      "original": "08/03/2026",
+      "fixed": "2026-03-07",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-07"
+    },
+    {
+      "rowNumber": 19,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "08/03/2026",
+      "fixed": "2026-03-07",
+      "action": "Interpreted 08/03/2026 as DD/MM/YYYY → 2026-03-07"
+    },
+    {
+      "rowNumber": 20,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "09/03/2026",
+      "fixed": "2026-03-08",
+      "action": "Interpreted 09/03/2026 as DD/MM/YYYY → 2026-03-08"
+    },
+    {
+      "rowNumber": 20,
+      "type": "USD_EXPENSE",
+      "original": "540 USD",
+      "fixed": null,
+      "action": "Imported with USD currency — will be converted at ₹83/USD for balance calculations"
+    },
+    {
+      "rowNumber": 20,
+      "type": "AMBIGUOUS_DATE",
+      "original": "09/03/2026",
+      "fixed": "2026-03-08",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-08"
+    },
+    {
+      "rowNumber": 21,
+      "type": "USD_EXPENSE",
+      "original": "84 USD",
+      "fixed": null,
+      "action": "Imported with USD currency — will be converted at ₹83/USD for balance calculations"
+    },
+    {
+      "rowNumber": 21,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "10/03/2026",
+      "fixed": "2026-03-09",
+      "action": "Interpreted 10/03/2026 as DD/MM/YYYY → 2026-03-09"
+    },
+    {
+      "rowNumber": 21,
+      "type": "AMBIGUOUS_DATE",
+      "original": "10/03/2026",
+      "fixed": "2026-03-09",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-09"
+    },
+    {
+      "rowNumber": 22,
+      "type": "AMBIGUOUS_DATE",
+      "original": "10/03/2026",
+      "fixed": "2026-03-09",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-09"
+    },
+    {
+      "rowNumber": 22,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "10/03/2026",
+      "fixed": "2026-03-09",
+      "action": "Interpreted 10/03/2026 as DD/MM/YYYY → 2026-03-09"
+    },
+    {
+      "rowNumber": 23,
+      "type": "INVALID_PARTICIPANT",
+      "original": "Dev's friend Kabir",
+      "fixed": null,
+      "action": "Unknown participant \"Dev's friend Kabir\" — excluded from split"
+    },
+    {
+      "rowNumber": 23,
+      "type": "USD_EXPENSE",
+      "original": "150 USD",
+      "fixed": null,
+      "action": "Imported with USD currency — will be converted at ₹83/USD for balance calculations"
+    },
+    {
+      "rowNumber": 23,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "11/03/2026",
+      "fixed": "2026-03-10",
+      "action": "Interpreted 11/03/2026 as DD/MM/YYYY → 2026-03-10"
+    },
+    {
+      "rowNumber": 23,
+      "type": "AMBIGUOUS_DATE",
+      "original": "11/03/2026",
+      "fixed": "2026-03-10",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-10"
+    },
+    {
+      "rowNumber": 24,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "11/03/2026",
+      "fixed": "2026-03-10",
+      "action": "Interpreted 11/03/2026 as DD/MM/YYYY → 2026-03-10"
+    },
+    {
+      "rowNumber": 24,
+      "type": "AMBIGUOUS_DATE",
+      "original": "11/03/2026",
+      "fixed": "2026-03-10",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-10"
+    },
+    {
+      "rowNumber": 24,
+      "type": "CONFLICTING_DUPLICATE",
+      "original": "Row 24: \"Dinner at Thalassa\" by Aisha for 2400",
+      "fixed": "Keeping row 25 instead",
+      "action": "Conflicting with row 25: \"Thalassa dinner\" by Rohan for 2450 — keeping row 25 (per notes suggesting row 24 is wrong)"
+    },
+    {
+      "rowNumber": 25,
+      "type": "AMBIGUOUS_DATE",
+      "original": "11/03/2026",
+      "fixed": "2026-03-10",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-10"
+    },
+    {
+      "rowNumber": 25,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "11/03/2026",
+      "fixed": "2026-03-10",
+      "action": "Interpreted 11/03/2026 as DD/MM/YYYY → 2026-03-10"
+    },
+    {
+      "rowNumber": 26,
+      "type": "NEGATIVE_AMOUNT",
+      "original": "-30",
+      "fixed": "-30",
+      "action": "Imported as refund/credit (negative expense)"
+    },
+    {
+      "rowNumber": 26,
+      "type": "AMBIGUOUS_DATE",
+      "original": "12/03/2026",
+      "fixed": "2026-03-11",
+      "action": "Interpreted as DD/MM/YYYY → 2026-03-11"
+    },
+    {
+      "rowNumber": 26,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "12/03/2026",
+      "fixed": "2026-03-11",
+      "action": "Interpreted 12/03/2026 as DD/MM/YYYY → 2026-03-11"
+    },
+    {
+      "rowNumber": 26,
+      "type": "USD_EXPENSE",
+      "original": "-30 USD",
+      "fixed": null,
+      "action": "Imported with USD currency — will be converted at ₹83/USD for balance calculations"
+    },
+    {
+      "rowNumber": 27,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "Mar 14",
+      "fixed": "2026-03-13",
+      "action": "Parsed \"Mar 14\" as 2026-03-13 (assumed year 2026)"
+    },
+    {
+      "rowNumber": 27,
+      "type": "NAME_VARIATION",
+      "original": "rohan",
+      "fixed": "Rohan",
+      "action": "Normalized name \"rohan\" → \"Rohan\""
+    },
+    {
+      "rowNumber": 28,
+      "type": "MISSING_CURRENCY",
+      "original": null,
+      "fixed": "INR",
+      "action": "Defaulted to INR — currency was empty"
+    },
+    {
+      "rowNumber": 31,
+      "type": "ZERO_AMOUNT",
+      "original": "0",
+      "fixed": null,
+      "action": "Skipped — zero amount has no financial impact"
+    },
+    {
+      "rowNumber": 32,
+      "type": "INVALID_PERCENTAGES",
+      "original": "Percentages sum to 110%",
+      "fixed": "Normalized to 100%",
+      "action": "Percentages summed to 110% — normalized proportionally to 100%"
+    },
+    {
+      "rowNumber": 34,
+      "type": "DATE_FORMAT_FIXED",
+      "original": "04/05/2026",
+      "fixed": "2026-05-03",
+      "action": "Interpreted 04/05/2026 as DD/MM/YYYY → 2026-05-03"
+    },
+    {
+      "rowNumber": 34,
+      "type": "AMBIGUOUS_DATE",
+      "original": "04/05/2026",
+      "fixed": "2026-05-03",
+      "action": "Interpreted as DD/MM/YYYY → 2026-05-03"
+    },
+    {
+      "rowNumber": 36,
+      "type": "MEMBER_AFTER_LEAVING",
+      "original": "Meera",
+      "fixed": null,
+      "action": "Meera left on 2026-03-31 — excluded from this expense dated 2026-04-01"
+    },
+    {
+      "rowNumber": 38,
+      "type": "SETTLEMENT_AS_EXPENSE",
+      "original": "Sam deposit share",
+      "fixed": null,
+      "action": "Detected as settlement — imported as payment record, not expense"
+    },
+    {
+      "rowNumber": 39,
+      "type": "MEMBER_BEFORE_JOINING",
+      "original": "Sam",
+      "fixed": null,
+      "action": "Sam joined on 2026-04-15 — excluded from this expense dated 2026-04-09"
+    },
+    {
+      "rowNumber": 40,
+      "type": "MEMBER_BEFORE_JOINING",
+      "original": "Sam",
+      "fixed": null,
+      "action": "Sam joined on 2026-04-15 — excluded from this expense dated 2026-04-11"
+    },
+    {
+      "rowNumber": 41,
+      "type": "MEMBER_BEFORE_JOINING",
+      "original": "Sam",
+      "fixed": null,
+      "action": "Sam joined on 2026-04-15 — excluded from this expense dated 2026-04-14"
+    },
+    {
+      "rowNumber": 42,
+      "type": "SPLIT_TYPE_MISMATCH",
+      "original": "split_type=equal, but split_details provided",
+      "fixed": "Treating as equal split (ignoring split_details)",
+      "action": "Split type is 'equal' but split_details were provided — using equal split, ignoring details"
+    }
+  ]
+}
