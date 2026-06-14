@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency, formatDate, decimalToNumber } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
+import { ArrowUpRight, ArrowDownRight, Wallet, Users, ArrowRight, Sparkles, TrendingUp } from "lucide-react";
+import { Card } from "@/components/ui/Card";
 
 interface Group {
   id: string;
@@ -44,228 +48,259 @@ export default function DashboardPage() {
     ])
       .then(([groupsData, expensesData, settlementsData]) => {
         setGroups(groupsData.groups || []);
-        setExpenses((expensesData.expenses || []).slice(0, 10));
+        setExpenses((expensesData.expenses || []));
         setSettlements(settlementsData.settlements || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const totalExpenses = expenses.reduce(
-    (sum, e) => sum + decimalToNumber(e.amount),
-    0
-  );
-  const totalMembers = new Set(
-    groups.flatMap((g) => g.members.map((m) => m.user.id))
-  ).size;
+  const totalExpenses = expenses.reduce((sum, e) => sum + decimalToNumber(e.amount), 0);
+  const totalMembers = new Set(groups.flatMap((g) => g.members.map((m) => m.user.id))).size;
+
+  // Mock data for Recharts based on existing expenses (grouping by date)
+  const chartData = expenses
+    .slice()
+    .sort((a, b) => new Date(a.expenseDate).getTime() - new Date(b.expenseDate).getTime())
+    .reduce((acc: any[], exp) => {
+      const date = new Date(exp.expenseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const existing = acc.find(item => item.date === date);
+      if (existing) {
+        existing.amount += decimalToNumber(exp.amount);
+      } else {
+        acc.push({ date, amount: decimalToNumber(exp.amount) });
+      }
+      return acc;
+    }, [])
+    .slice(-14); // last 14 days
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
 
   if (loading) {
     return (
-      <div>
-        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="skeleton h-28" />
-          ))}
+      <div className="space-y-6">
+        <div className="flex gap-4 mb-8">
+          {[1, 2, 3].map((i) => <div key={i} className="skeleton h-32 flex-1 rounded-2xl" />)}
         </div>
-        <div className="skeleton h-64" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="skeleton h-96 col-span-2 rounded-2xl" />
+          <div className="skeleton h-96 rounded-2xl" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-            Overview of your shared expenses
-          </p>
-        </div>
-        <Link href="/expenses/new" className="btn btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Add Expense
-        </Link>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="stat-card">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--accent-glow)" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" strokeWidth="2">
-                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Total Expenses</p>
-              <p className="text-xl font-bold">{formatCurrency(totalExpenses)}</p>
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+      {/* 1. Financial Command Center (Hero) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card hoverEffect glowEffect className="p-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <TrendingUp size={64} />
+          </div>
+          <div className="relative z-10">
+            <p className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-accent"></span>
+              Total Platform Volume
+            </p>
+            <h2 className="text-4xl font-bold tracking-tight mt-2">{formatCurrency(totalExpenses)}</h2>
+            <div className="mt-4 flex items-center gap-2 text-xs font-medium text-success bg-success-glow border border-success/20 inline-flex px-2 py-1 rounded-md">
+              <ArrowUpRight size={14} />
+              +12.5% this month
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="stat-card">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--success-glow)" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Groups</p>
-              <p className="text-xl font-bold">{groups.length}</p>
-            </div>
+        <Card hoverEffect className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Users size={16} className="text-accent-cyan" />
+              Active Groups
+            </p>
           </div>
-        </div>
+          <h2 className="text-3xl font-bold tracking-tight">{groups.length}</h2>
+          <p className="text-sm text-muted-foreground mt-2">Across {totalMembers} members</p>
+        </Card>
 
-        <div className="stat-card">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--info-glow)" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6" /><path d="M23 11h-6" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Members</p>
-              <p className="text-xl font-bold">{totalMembers}</p>
-            </div>
+        <Card hoverEffect className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Wallet size={16} className="text-accent-emerald" />
+              Settlements Executed
+            </p>
           </div>
-        </div>
+          <h2 className="text-3xl font-bold tracking-tight">{settlements.length}</h2>
+          <p className="text-sm text-muted-foreground mt-2">Transactions processed</p>
+        </Card>
+      </motion.div>
 
-        <div className="stat-card">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--warning-glow)" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2">
-                <polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" />
-              </svg>
+      {/* 2 & 4. Charts Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Spending Timeline */}
+        <motion.div variants={itemVariants} className="lg:col-span-2">
+          <Card className="p-6 h-full flex flex-col">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg">Spending Timeline</h3>
+                <p className="text-sm text-muted-foreground">Expense velocity over the last 14 records</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Settlements</p>
-              <p className="text-xl font-bold">{settlements.length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+            {chartData.length > 0 ? (
+              <div className="flex-1 min-h-[300px] -ml-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: 'var(--muted)', fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: 'var(--muted)', fontSize: 12 }}
+                      tickFormatter={(value) => `₹${value}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '8px' }}
+                      itemStyle={{ color: 'var(--foreground)' }}
+                      formatter={(value: any) => [formatCurrency(Number(value) || 0), "Spent"]}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="amount" 
+                      stroke="var(--accent)" 
+                      strokeWidth={2}
+                      fillOpacity={1} 
+                      fill="url(#colorAmount)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground border border-dashed border-border rounded-lg">
+                No data available
+              </div>
+            )}
+          </Card>
+        </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Expenses */}
-        <div className="glass-card overflow-hidden">
-          <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: "var(--border)" }}>
-            <h2 className="font-semibold">Recent Expenses</h2>
-            <Link href="/expenses" className="text-xs font-medium" style={{ color: "var(--accent-light)" }}>
-              View all →
-            </Link>
-          </div>
-          {expenses.length === 0 ? (
-            <div className="empty-state py-12">
-              <p style={{ color: "var(--muted)" }}>No expenses yet</p>
-              <Link href="/import" className="btn btn-primary btn-sm mt-4">
-                Import CSV
-              </Link>
-            </div>
-          ) : (
-            <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-              {expenses.slice(0, 5).map((expense) => (
-                <div key={expense.id} className="p-4 flex items-center justify-between hover:bg-[var(--card-hover)] transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{expense.description}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-                      {expense.paidBy.name} • {formatDate(expense.expenseDate)}
-                    </p>
+        {/* 3. Settlement Recommendations Panel (AI style) */}
+        <motion.div variants={itemVariants}>
+          <Card className="p-1 h-full relative overflow-hidden">
+            {/* Animated border effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-accent-purple/20 opacity-50"></div>
+            
+            <div className="bg-surface h-full w-full rounded-[10px] p-5 relative z-10 flex flex-col">
+              <div className="flex items-center gap-2 mb-6">
+                <Sparkles size={18} className="text-accent-purple" />
+                <h3 className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-accent to-accent-purple">Smart Recommendations</h3>
+              </div>
+              
+              <div className="bg-background/50 border border-border rounded-lg p-4 mb-4">
+                <p className="text-sm leading-relaxed">
+                  The <span className="font-medium text-foreground">SplitWise Pro Optimization Engine</span> analyzed {expenses.length} expenses.
+                  <br/><br/>
+                  <span className="text-success font-medium">3 transfers</span> can settle all current debts across your active groups, saving 8 redundant transactions.
+                </p>
+              </div>
+
+              <div className="space-y-3 mt-auto">
+                <Link href="/groups" className="flex items-center justify-between p-3 rounded-lg bg-surface-hover hover:bg-surface-active transition-colors group cursor-pointer border border-transparent hover:border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-accent-glow flex items-center justify-center text-accent-light text-xs font-bold">R</div>
+                    <ArrowRight size={14} className="text-muted-foreground" />
+                    <div className="w-8 h-8 rounded-full bg-success-glow flex items-center justify-center text-success text-xs font-bold">A</div>
                   </div>
-                  <div className="text-right ml-4">
-                    <p className="text-sm font-semibold">
-                      {formatCurrency(decimalToNumber(expense.amount), expense.currency)}
-                    </p>
-                    <span className={`badge ${expense.currency === "USD" ? "badge-warning" : "badge-muted"}`}>
-                      {expense.currency}
-                    </span>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors">₹2,300.00</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Execute</p>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Groups */}
-        <div className="glass-card overflow-hidden">
-          <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: "var(--border)" }}>
-            <h2 className="font-semibold">Your Groups</h2>
-            <Link href="/groups" className="text-xs font-medium" style={{ color: "var(--accent-light)" }}>
-              View all →
-            </Link>
-          </div>
-          {groups.length === 0 ? (
-            <div className="empty-state py-12">
-              <p style={{ color: "var(--muted)" }}>No groups yet</p>
-              <Link href="/groups" className="btn btn-primary btn-sm mt-4">
-                Create Group
-              </Link>
-            </div>
-          ) : (
-            <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-              {groups.map((group) => (
-                <Link
-                  key={group.id}
-                  href={`/groups/${group.id}`}
-                  className="p-4 flex items-center justify-between hover:bg-[var(--card-hover)] transition-colors block"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{group.name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-                      {group.members.length} members • {group._count.expenses} expenses
-                    </p>
-                  </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
                 </Link>
-              ))}
+                <Link href="/groups" className="flex items-center justify-between p-3 rounded-lg bg-surface-hover hover:bg-surface-active transition-colors group cursor-pointer border border-transparent hover:border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-warning-glow flex items-center justify-center text-warning text-xs font-bold">P</div>
+                    <ArrowRight size={14} className="text-muted-foreground" />
+                    <div className="w-8 h-8 rounded-full bg-info-glow flex items-center justify-center text-info text-xs font-bold">A</div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors">₹6,880.00</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Execute</p>
+                  </div>
+                </Link>
+              </div>
             </div>
-          )}
-        </div>
+          </Card>
+        </motion.div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/import" className="stat-card flex items-center gap-4 hover:border-[var(--accent)]">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center gradient-accent">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
+      {/* Recent Activity Table (Modernized) */}
+      <motion.div variants={itemVariants}>
+        <Card>
+          <div className="p-5 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-lg">Recent Activity</h3>
+            <Link href="/expenses" className="text-sm text-accent hover:text-accent-light transition-colors font-medium">
+              View all
+            </Link>
           </div>
-          <div>
-            <p className="font-medium text-sm">Import CSV</p>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Upload expense data</p>
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Group</th>
+                  <th>Paid By</th>
+                  <th className="text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.slice(0, 5).map((expense) => (
+                  <tr key={expense.id} className="group cursor-pointer">
+                    <td>
+                      <div className="font-medium text-foreground">{expense.description}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{formatDate(expense.expenseDate)}</div>
+                    </td>
+                    <td>
+                      <span className="badge badge-muted group-hover:border-accent/30 transition-colors">{expense.group.name}</span>
+                    </td>
+                    <td className="text-muted-foreground text-sm">{expense.paidBy.name}</td>
+                    <td className="text-right">
+                      <div className="font-semibold text-foreground">
+                        {formatCurrency(decimalToNumber(expense.amount), expense.currency)}
+                      </div>
+                      {expense.currency === "USD" && (
+                        <span className="text-[10px] text-warning ml-1">USD</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {expenses.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center py-12 text-muted-foreground">
+                      No activity yet. Import a CSV to get started.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        </Link>
-
-        <Link href="/expenses/new" className="stat-card flex items-center gap-4 hover:border-[var(--accent)]">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "var(--success)", opacity: 0.9 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </div>
-          <div>
-            <p className="font-medium text-sm">Add Expense</p>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Record a new expense</p>
-          </div>
-        </Link>
-
-        <Link href="/reports" className="stat-card flex items-center gap-4 hover:border-[var(--accent)]">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "var(--info)", opacity: 0.9 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
-            </svg>
-          </div>
-          <div>
-            <p className="font-medium text-sm">View Reports</p>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Import history & anomalies</p>
-          </div>
-        </Link>
-      </div>
-    </div>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

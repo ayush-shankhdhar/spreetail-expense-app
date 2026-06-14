@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, XCircle, ChevronRight, Activity, Zap, Play } from "lucide-react";
 
 interface AnomalyReport {
   rowNumber: number;
   anomalyType: string;
-  originalValue: string;
+  originalValue: string | null;
   fixedValue: string | null;
   actionTaken: string;
 }
@@ -24,55 +28,22 @@ interface Group {
   name: string;
 }
 
-const ANOMALY_COLORS: Record<string, string> = {
-  DUPLICATE_EXPENSE: "danger",
-  CONFLICTING_DUPLICATE: "danger",
-  MISSING_PAYER: "danger",
-  MISSING_AMOUNT: "danger",
-  MISSING_DESCRIPTION: "danger",
-  ZERO_AMOUNT: "danger",
-  INVALID_DATE: "danger",
-  NEGATIVE_AMOUNT: "warning",
-  EXCESS_DECIMAL_PRECISION: "info",
-  MISSING_CURRENCY: "info",
-  AMOUNT_FORMAT_FIXED: "info",
-  DATE_FORMAT_FIXED: "info",
-  NAME_VARIATION: "info",
-  AMBIGUOUS_DATE: "warning",
-  USD_EXPENSE: "warning",
-  SETTLEMENT_AS_EXPENSE: "warning",
-  MEMBER_AFTER_LEAVING: "warning",
-  MEMBER_BEFORE_JOINING: "warning",
-  INVALID_PARTICIPANT: "warning",
-  SPLIT_TYPE_MISMATCH: "info",
-  INVALID_PERCENTAGES: "warning",
-  MISSING_SPLIT_TYPE: "info",
+// Map severity levels to our fintech design system
+const ANOMALY_THEME: Record<string, { color: string; icon: React.FC<any>; label: string; severity: "high" | "medium" | "low" }> = {
+  DUPLICATE_EXPENSE: { color: "danger", icon: XCircle, label: "Duplicate Entry", severity: "high" },
+  CONFLICTING_DUPLICATE: { color: "danger", icon: XCircle, label: "Data Conflict", severity: "high" },
+  MISSING_PAYER: { color: "danger", icon: AlertTriangle, label: "Missing Payer", severity: "high" },
+  INVALID_DATE: { color: "danger", icon: AlertTriangle, label: "Invalid Date Format", severity: "high" },
+  NEGATIVE_AMOUNT: { color: "warning", icon: AlertTriangle, label: "Refund Detected", severity: "medium" },
+  USD_EXPENSE: { color: "warning", icon: Zap, label: "Foreign Currency", severity: "medium" },
+  SETTLEMENT_AS_EXPENSE: { color: "warning", icon: Activity, label: "Settlement Routed", severity: "medium" },
+  MEMBER_AFTER_LEAVING: { color: "warning", icon: AlertTriangle, label: "Inactive Member", severity: "medium" },
+  AMOUNT_FORMAT_FIXED: { color: "info", icon: CheckCircle2, label: "Format Corrected", severity: "low" },
+  DATE_FORMAT_FIXED: { color: "info", icon: CheckCircle2, label: "Date Normalized", severity: "low" },
 };
 
-function getAnomalyColor(type: string): string {
-  return ANOMALY_COLORS[type] || "info";
-}
-
-function getAnomalyIcon(color: string) {
-  if (color === "danger") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round">
-        <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-      </svg>
-    );
-  }
-  if (color === "warning") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--info)" strokeWidth="2" strokeLinecap="round">
-      <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-    </svg>
-  );
+function getTheme(type: string) {
+  return ANOMALY_THEME[type] || { color: "info", icon: AlertTriangle, label: type.replace(/_/g, " "), severity: "low" };
 }
 
 export default function ImportPage() {
@@ -83,16 +54,14 @@ export default function ImportPage() {
   const [report, setReport] = useState<ImportReport | null>(null);
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
-  const [creatingGroup, setCreatingGroup] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
+  
+  // Anomaly review state
+  const [reviewedAnomalies, setReviewedAnomalies] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetch("/api/groups")
       .then((r) => r.json())
-      .then((data) => {
-        setGroups(data.groups || []);
-      })
+      .then((data) => setGroups(data.groups || []))
       .catch(console.error);
   }, []);
 
@@ -100,56 +69,28 @@ export default function ImportPage() {
     e.preventDefault();
     setDragOver(false);
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile?.name.endsWith(".csv")) {
-      setFile(droppedFile);
-    }
+    if (droppedFile?.name.endsWith(".csv")) setFile(droppedFile);
   }, []);
-
-  const handleCreateGroup = async () => {
-    if (!newGroupName.trim()) return;
-    setCreatingGroup(true);
-    try {
-      const res = await fetch("/api/groups", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newGroupName }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setGroups((prev) => [...prev, data.group]);
-        setSelectedGroup(data.group.id);
-        setNewGroupName("");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setCreatingGroup(false);
-    }
-  };
 
   const handleUpload = async () => {
     if (!file || !selectedGroup) return;
     setUploading(true);
     setError("");
     setReport(null);
+    setReviewedAnomalies(new Set());
 
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("groupId", selectedGroup);
 
-      const res = await fetch("/api/import", {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch("/api/import", { method: "POST", body: formData });
       const data = await res.json();
 
       if (!res.ok) {
         setError(data.error || "Import failed");
         return;
       }
-
       setReport(data.report);
     } catch {
       setError("Import failed — please try again");
@@ -158,265 +99,231 @@ export default function ImportPage() {
     }
   };
 
-  const anomalyTypes = report
-    ? [...new Set(report.anomalies.map((a) => a.anomalyType))]
-    : [];
-
-  const filteredAnomalies = report?.anomalies.filter(
-    (a) => activeFilter === "all" || a.anomalyType === activeFilter
-  ) || [];
+  const markReviewed = (index: number) => {
+    setReviewedAnomalies(prev => {
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+  };
 
   return (
-    <div className="animate-fade-in">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Import CSV</h1>
-        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-          Upload your expense CSV to import data with anomaly detection
-        </p>
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Data Ingestion Engine</h1>
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl leading-relaxed">
+            Upload raw CSV exports. Our anomaly detection engine automatically parses dates, fixes formatting, identifies duplicate settlements, and flags strict conflicts.
+          </p>
+        </div>
       </div>
 
-      {!report ? (
-        <div className="max-w-2xl">
-          {/* Group Selection */}
-          <div className="glass-card p-6 mb-4">
-            <h3 className="font-semibold mb-3">1. Select or Create Group</h3>
-            <div className="flex gap-3">
-              <select
-                className="input flex-1"
-                value={selectedGroup}
-                onChange={(e) => setSelectedGroup(e.target.value)}
-              >
-                <option value="">Select a group...</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
-              <span className="text-sm self-center" style={{ color: "var(--muted)" }}>or</span>
-              <div className="flex gap-2">
-                <input
-                  className="input"
-                  placeholder="New group name"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  style={{ width: "180px" }}
-                />
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={handleCreateGroup}
-                  disabled={creatingGroup || !newGroupName.trim()}
-                >
-                  {creatingGroup ? "..." : "Create"}
-                </button>
+      <AnimatePresence mode="wait">
+        {!report ? (
+          <motion.div 
+            key="upload-zone"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="space-y-6"
+          >
+            {/* Configuration */}
+            <Card className="p-1 overflow-hidden relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="bg-surface rounded-[10px] p-6 relative z-10 flex flex-col md:flex-row md:items-center gap-6">
+                <div className="flex-1">
+                  <h3 className="font-semibold mb-1">Target Workspace</h3>
+                  <p className="text-xs text-muted-foreground">Select the ledger destination for the imported data.</p>
+                </div>
+                <div className="w-full md:w-72">
+                  <select
+                    className="input w-full bg-background"
+                    value={selectedGroup}
+                    onChange={(e) => setSelectedGroup(e.target.value)}
+                  >
+                    <option value="">Select a workspace...</option>
+                    {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                </div>
               </div>
-            </div>
-          </div>
+            </Card>
 
-          {/* File Upload */}
-          <div className="glass-card p-6 mb-4">
-            <h3 className="font-semibold mb-3">2. Upload CSV File</h3>
+            {/* Drop Zone */}
             <div
-              className={`file-drop-zone ${dragOver ? "drag-over" : ""}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               onClick={() => document.getElementById("csv-input")?.click()}
+              className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 overflow-hidden ${
+                dragOver ? "border-accent bg-accent/5 scale-[1.02]" : "border-border hover:border-accent/50 hover:bg-surface-hover"
+              } ${file ? "border-success/50 bg-success/5" : ""}`}
             >
-              <input
-                id="csv-input"
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-              />
-              {file ? (
-                <div>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" className="mx-auto mb-3">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                  <p className="font-medium">{file.name}</p>
-                  <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                    {(file.size / 1024).toFixed(1)} KB • Click to change
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" className="mx-auto mb-3">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                  <p className="font-medium">Drop your CSV file here</p>
-                  <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                    or click to browse
-                  </p>
-                </div>
-              )}
+              <input id="csv-input" type="file" accept=".csv" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+              
+              <div className="relative z-10 flex flex-col items-center">
+                <motion.div 
+                  animate={dragOver ? { y: -10 } : { y: 0 }} 
+                  className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-xl ${file ? 'bg-success-glow' : 'bg-surface border border-border'}`}
+                >
+                  {file ? (
+                    <FileSpreadsheet size={36} className="text-success" />
+                  ) : (
+                    <UploadCloud size={36} className={dragOver ? "text-accent" : "text-muted-foreground"} />
+                  )}
+                </motion.div>
+                
+                {file ? (
+                  <>
+                    <h3 className="text-xl font-bold tracking-tight text-foreground mb-2">{file.name}</h3>
+                    <p className="text-sm font-medium text-success bg-success/10 px-3 py-1 rounded-full">Ready for ingestion</p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-bold tracking-tight mb-2">Drag & Drop CSV File</h3>
+                    <p className="text-muted-foreground max-w-sm mx-auto text-sm">
+                      Support for standard expense exports. The engine will automatically map columns and detect anomalies.
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
 
-          {error && (
-            <div className="mb-4 p-3 rounded-lg text-sm" style={{ background: "var(--danger-glow)", color: "var(--danger)", border: "1px solid var(--danger)" }}>
-              {error}
-            </div>
-          )}
-
-          <button
-            className="btn btn-primary btn-lg w-full"
-            onClick={handleUpload}
-            disabled={!file || !selectedGroup || uploading}
-          >
-            {uploading ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Processing CSV...
-              </span>
-            ) : (
-              <>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                Import & Analyze
-              </>
+            {error && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm font-medium flex items-center gap-3">
+                <AlertTriangle size={18} /> {error}
+              </motion.div>
             )}
-          </button>
-        </div>
-      ) : (
-        /* Import Report */
-        <div>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="stat-card">
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Total Rows</p>
-              <p className="text-2xl font-bold">{report.totalRows}</p>
-            </div>
-            <div className="stat-card" style={{ borderColor: "var(--success)" }}>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Imported</p>
-              <p className="text-2xl font-bold" style={{ color: "var(--success)" }}>{report.importedRows}</p>
-            </div>
-            <div className="stat-card" style={{ borderColor: "var(--danger)" }}>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Skipped</p>
-              <p className="text-2xl font-bold" style={{ color: "var(--danger)" }}>{report.skippedRows}</p>
-            </div>
-            <div className="stat-card" style={{ borderColor: "var(--warning)" }}>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Anomalies</p>
-              <p className="text-2xl font-bold" style={{ color: "var(--warning)" }}>{report.anomalies.length}</p>
-            </div>
-          </div>
 
-          {report.settlementsDetected > 0 && (
-            <div className="mb-4 p-3 rounded-lg text-sm flex items-center gap-2" style={{ background: "var(--info-glow)", color: "var(--info)", border: "1px solid var(--info)" }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-              {report.settlementsDetected} settlement(s) detected and imported as payment records (not expenses)
-            </div>
-          )}
-
-          {/* Anomaly Filter Tabs */}
-          <div className="glass-card p-4 mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <h3 className="font-semibold">Anomalies Detected</h3>
-              <span className="badge badge-warning">{report.anomalies.length}</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setActiveFilter("all")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                  activeFilter === "all" ? "border-[var(--accent)]" : "border-[var(--border)]"
-                }`}
-                style={activeFilter === "all" ? { background: "var(--accent-glow)", color: "var(--accent-light)" } : { color: "var(--muted)" }}
+            <div className="flex justify-end">
+              <Button 
+                size="lg" 
+                disabled={!file || !selectedGroup || uploading} 
+                isLoading={uploading}
+                onClick={handleUpload}
+                className="w-full md:w-auto relative group overflow-hidden"
               >
-                All ({report.anomalies.length})
-              </button>
-              {anomalyTypes.map((type) => {
-                const count = report.anomalies.filter((a) => a.anomalyType === type).length;
-                const color = getAnomalyColor(type);
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setActiveFilter(type)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                      activeFilter === type ? `border-[var(--${color})]` : "border-[var(--border)]"
-                    }`}
-                    style={activeFilter === type
-                      ? { background: `var(--${color}-glow)`, color: `var(--${color})` }
-                      : { color: "var(--muted)" }
-                    }
-                  >
-                    {type.replace(/_/g, " ")} ({count})
-                  </button>
-                );
-              })}
+                {!uploading && (
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                )}
+                {!uploading && <Play size={18} className="mr-2" />}
+                {uploading ? "Analyzing Dataset..." : "Run Ingestion Engine"}
+              </Button>
             </div>
-          </div>
+          </motion.div>
+        ) : (
+          /* Report & Anomaly Center */
+          <motion.div 
+            key="report-zone"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8"
+          >
+            {/* Health Overview Widgets */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Total Rows", value: report.totalRows, color: "text-foreground", border: "border-border" },
+                { label: "Successfully Ingested", value: report.importedRows, color: "text-success", border: "border-success/30", bg: "bg-success/5" },
+                { label: "Skipped / Failed", value: report.skippedRows, color: "text-danger", border: "border-danger/30", bg: "bg-danger/5" },
+                { label: "Anomalies Detected", value: report.anomalies.length, color: "text-warning", border: "border-warning/30", bg: "bg-warning/5" },
+              ].map((stat, i) => (
+                <Card key={i} className={`p-5 flex flex-col justify-between border ${stat.border} ${stat.bg || ''}`}>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{stat.label}</p>
+                  <p className={`text-3xl font-bold tracking-tight ${stat.color}`}>{stat.value}</p>
+                </Card>
+              ))}
+            </div>
 
-          {/* Anomaly List */}
-          <div className="space-y-2 mb-6">
-            {filteredAnomalies.map((anomaly, i) => {
-              const color = getAnomalyColor(anomaly.anomalyType);
-              return (
-                <div key={i} className={`anomaly-card ${color === "danger" ? "error" : color === "info" ? "fixed" : ""}`}>
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5">{getAnomalyIcon(color)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: `var(--${color}-glow)`, color: `var(--${color})` }}>
-                          Row {anomaly.rowNumber}
-                        </span>
-                        <span className={`badge badge-${color}`}>
-                          {anomaly.anomalyType.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                      <p className="text-sm">{anomaly.actionTaken}</p>
-                      {anomaly.originalValue && (
-                        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
-                          Original: <code className="px-1 py-0.5 rounded" style={{ background: "var(--card)" }}>{anomaly.originalValue}</code>
-                        </p>
-                      )}
-                      {anomaly.fixedValue && (
-                        <p className="text-xs mt-0.5" style={{ color: "var(--success)" }}>
-                          Fixed to: <code className="px-1 py-0.5 rounded" style={{ background: "var(--card)" }}>{anomaly.fixedValue}</code>
-                        </p>
-                      )}
-                    </div>
+            {/* Anomaly Review Center */}
+            {report.anomalies.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight">Anomaly Review Center</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {reviewedAnomalies.size} of {report.anomalies.length} anomalies reviewed
+                    </p>
+                  </div>
+                  <div className="w-48 h-2 bg-surface rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-accent" 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(reviewedAnomalies.size / report.anomalies.length) * 100}%` }}
+                    />
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-3">
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                setReport(null);
-                setFile(null);
-              }}
-            >
-              Import Another File
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-                const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `import-report-${report.importSessionId}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Download Report JSON
-            </button>
-          </div>
-        </div>
-      )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {report.anomalies.map((anomaly, index) => {
+                    const theme = getTheme(anomaly.anomalyType);
+                    const isReviewed = reviewedAnomalies.has(index);
+                    
+                    return (
+                      <motion.div 
+                        key={index}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <Card className={`p-0 h-full flex flex-col border-2 transition-all duration-300 ${isReviewed ? 'border-border opacity-60' : `border-${theme.color}/30 shadow-[0_0_15px_var(--${theme.color}-glow)]`}`}>
+                          {/* Header */}
+                          <div className={`p-4 border-b border-border bg-${theme.color}/5 flex items-start justify-between`}>
+                            <div className="flex items-center gap-2">
+                              <theme.icon size={18} className={`text-${theme.color}`} />
+                              <span className="font-semibold text-sm">{theme.label}</span>
+                            </div>
+                            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground bg-background px-2 py-1 rounded">Row {anomaly.rowNumber}</span>
+                          </div>
+                          
+                          {/* Body */}
+                          <div className="p-4 flex-1 flex flex-col justify-center">
+                            <p className="text-sm leading-relaxed mb-4">{anomaly.actionTaken}</p>
+                            
+                            {(anomaly.originalValue || anomaly.fixedValue) && (
+                              <div className="bg-surface-hover rounded-lg p-3 text-xs font-mono space-y-2 mt-auto">
+                                {anomaly.originalValue && (
+                                  <div className="flex gap-2">
+                                    <span className="text-muted-foreground w-12 shrink-0">Raw:</span>
+                                    <span className="text-danger truncate line-through opacity-80">{anomaly.originalValue}</span>
+                                  </div>
+                                )}
+                                {anomaly.fixedValue && (
+                                  <div className="flex gap-2">
+                                    <span className="text-muted-foreground w-12 shrink-0">Fixed:</span>
+                                    <span className="text-success truncate font-medium">{anomaly.fixedValue}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Action Footer */}
+                          {!isReviewed && (
+                            <div className="p-3 border-t border-border grid grid-cols-2 gap-2 bg-background/50">
+                              <Button size="sm" variant="outline" onClick={() => markReviewed(index)}>Dismiss</Button>
+                              <Button size="sm" onClick={() => markReviewed(index)}>Acknowledge</Button>
+                            </div>
+                          )}
+                          {isReviewed && (
+                            <div className="p-3 border-t border-border bg-success/5 text-success text-xs font-medium flex items-center justify-center gap-2">
+                              <CheckCircle2 size={14} /> Reviewed
+                            </div>
+                          )}
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-6 border-t border-border">
+              <Button variant="secondary" onClick={() => setReport(null)}>Process Another Dataset</Button>
+              <Button>Download Detailed JSON Audit</Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -3,62 +3,29 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  LayoutDashboard, 
+  Users, 
+  Receipt, 
+  ArrowLeftRight, 
+  FileUp, 
+  BarChart3, 
+  Settings, 
+  LogOut,
+  Menu,
+  X,
+  Search,
+  Plus
+} from "lucide-react";
 
 const navigation = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-      </svg>
-    ),
-  },
-  {
-    name: "Groups",
-    href: "/groups",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-  },
-  {
-    name: "Expenses",
-    href: "/expenses",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-      </svg>
-    ),
-  },
-  {
-    name: "Settlements",
-    href: "/settlements",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-      </svg>
-    ),
-  },
-  {
-    name: "Import CSV",
-    href: "/import",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-      </svg>
-    ),
-  },
-  {
-    name: "Reports",
-    href: "/reports",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
-      </svg>
-    ),
-  },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Groups", href: "/groups", icon: Users },
+  { name: "Expenses", href: "/expenses", icon: Receipt },
+  { name: "Settlements", href: "/settlements", icon: ArrowLeftRight },
+  { name: "Import Center", href: "/import", icon: FileUp },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
 ];
 
 export default function DashboardLayout({
@@ -87,89 +54,136 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="p-5 border-b" style={{ borderColor: "var(--border)" }}>
-          <Link href="/dashboard" className="text-lg font-bold gradient-text">
-            SplitWise Pro
-          </Link>
+      {/* Sidebar Navigation Rail */}
+      <motion.aside 
+        className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-surface/50 backdrop-blur-xl border-r border-border flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="h-16 flex items-center px-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-purple flex items-center justify-center">
+              <span className="text-white font-bold text-lg leading-none">S</span>
+            </div>
+            <span className="font-semibold tracking-tight text-lg">SplitWise Pro</span>
+          </div>
+          <button className="ml-auto md:hidden text-muted-foreground" onClick={() => setSidebarOpen(false)}>
+            <X size={20} />
+          </button>
         </div>
 
-        <nav className="p-3 flex-1">
+        <div className="px-4 py-2 mt-4 flex-1">
           <div className="space-y-1">
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`sidebar-link ${pathname === item.href || pathname.startsWith(item.href + "/") ? "active" : ""}`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                {item.icon}
-                {item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group relative overflow-hidden ${
+                    isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div 
+                      layoutId="sidebar-active" 
+                      className="absolute inset-0 bg-surface-active rounded-lg z-0" 
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                  <div className="relative z-10 flex items-center gap-3 w-full">
+                    <item.icon size={18} className={isActive ? "text-accent-light" : "group-hover:text-foreground transition-colors"} />
+                    {item.name}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </nav>
+        </div>
 
-        <div className="p-4 border-t" style={{ borderColor: "var(--border)" }}>
+        <div className="p-4 mt-auto">
           {user && (
-            <div className="flex items-center gap-3 mb-3">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
-                style={{ background: "var(--accent-glow)", color: "var(--accent-light)" }}
-              >
+            <div className="mb-4 px-2 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-surface-active border border-border flex items-center justify-center text-sm font-semibold text-accent-light">
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user.name}</p>
-                <p className="text-xs truncate" style={{ color: "var(--muted)" }}>
-                  {user.email}
-                </p>
+                <p className="text-xs text-muted truncate">{user.email}</p>
               </div>
             </div>
           )}
           <button
             onClick={handleLogout}
-            className="btn btn-ghost w-full text-sm"
-            style={{ color: "var(--danger)" }}
+            className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-danger transition-colors rounded-lg hover:bg-danger/10"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
+            <LogOut size={18} />
             Sign out
           </button>
         </div>
-      </aside>
+      </motion.aside>
 
-      {/* Main content */}
-      <main
-        className="main-content flex-1 min-h-screen"
-        style={{ marginLeft: "var(--sidebar-width)" }}
-      >
-        {/* Mobile header */}
-        <div className="md:hidden flex items-center gap-3 p-4 border-b" style={{ borderColor: "var(--border)" }}>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="btn btn-ghost p-2"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
-          <span className="font-bold gradient-text">SplitWise Pro</span>
-        </div>
+      {/* Main Content Area */}
+      <main className="flex-1 min-h-screen flex flex-col md:pl-[260px]">
+        {/* Top Command Bar */}
+        <header className="h-16 border-b border-border bg-background/50 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8">
+          <div className="flex items-center gap-4">
+            <button className="md:hidden text-muted-foreground" onClick={() => setSidebarOpen(true)}>
+              <Menu size={20} />
+            </button>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-surface rounded-md border border-border w-64 focus-within:border-accent transition-colors">
+              <Search size={16} className="text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Search everywhere..." 
+                className="bg-transparent border-none outline-none text-sm w-full placeholder:text-muted-foreground text-foreground"
+              />
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono bg-background px-1.5 py-0.5 rounded border border-border">
+                <span>⌘</span><span>K</span>
+              </div>
+            </div>
+          </div>
 
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
-          {children}
+          <div className="flex items-center gap-3">
+            <Link 
+              href="/expenses/new" 
+              className="hidden sm:flex items-center gap-2 bg-foreground text-background px-3 py-1.5 rounded-full text-sm font-medium hover:bg-foreground/90 transition-colors"
+            >
+              <Plus size={16} />
+              New Expense
+            </Link>
+          </div>
+        </header>
+
+        <div className="p-4 sm:p-8 flex-1 max-w-7xl mx-auto w-full relative">
+          <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-accent/5 to-transparent pointer-events-none -z-10" />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
     </div>
